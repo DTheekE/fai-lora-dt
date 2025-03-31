@@ -16,7 +16,7 @@ export default function FluxStyleGUI() {
   const [guidanceScale, setGuidanceScale] = useState(3.5)
   const [realCFGScale, setRealCFGScale] = useState(3.5)
   const [numImages, setNumImages] = useState(1)
-  const [safetyChecker, setSafetyChecker] = useState(true)
+  const [safetyChecker, setSafetyChecker] = useState(false)
   const [scale, setScale] = useState("")
   const [imageSize, setImageSize] = useState("portrait_16_9")
   const [loraPaths, setLoraPaths] = useState([""])
@@ -45,7 +45,7 @@ export default function FluxStyleGUI() {
       scale: scale ? Number(scale) : undefined
     }
 
-    const result = await fal.subscribe("fal-ai/flux-general", {
+    const result = await fal.subscribe("fal-ai/flux-lora", {
       input: payload,
       logs: true,
       onQueueUpdate: (update) => {
@@ -201,10 +201,21 @@ export default function FluxStyleGUI() {
             <option value="custom">Custom</option>
           </select>
 
-          <div className="flex items-center space-x-2">
-            <input type="checkbox" checked={safetyChecker} onChange={() => setSafetyChecker(!safetyChecker)} />
-            <label className="text-sm">Enable Safety Checker</label>
-          </div>
+          <div className="flex items-center justify-between">
+  <label className="text-sm font-semibold">Enable Safety Checker</label>
+  <button
+    disabled onClick={() => setSafetyChecker(!safetyChecker)}
+    className={`relative inline-flex items-center h-6 rounded-full w-11 transition-colors duration-200 ease-in-out ${
+      safetyChecker ? 'bg-purple-600' : 'bg-zinc-600'
+    }`}
+  >
+    <span
+      className={`inline-block w-4 h-4 transform bg-white rounded-full transition-transform duration-200 ease-in-out ${
+        safetyChecker ? 'translate-x-6' : 'translate-x-1'
+      }`}
+    />
+  </button>
+</div>
         </div>
 
         <div className="flex space-x-2 pt-4">
