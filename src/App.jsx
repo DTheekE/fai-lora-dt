@@ -17,7 +17,6 @@ export default function FluxStyleGUI() {
   const [realCFGScale, setRealCFGScale] = useState(3.5)
   const [numImages, setNumImages] = useState(1)
   const [safetyChecker, setSafetyChecker] = useState(false)
-  const [scale, setScale] = useState("")
   const [imageSize, setImageSize] = useState("portrait_16_9")
   const [loraPaths, setLoraPaths] = useState([""])
   const [allResults, setAllResults] = useState([])
@@ -177,13 +176,8 @@ export default function FluxStyleGUI() {
         </div>
 
         <div className="space-y-2 pt-4">
-          <label className="text-sm font-semibold">Scale</label>
-          <Input
-            className="bg-zinc-800 text-white border-zinc-700"
-            placeholder="e.g. 1.0"
-            value={scale}
-            onChange={(e) => setScale(e.target.value)}
-          />
+     
+
 
           <label className="text-sm font-semibold">Image Size</label>
           <select
