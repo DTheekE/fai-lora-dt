@@ -1,4 +1,4 @@
-import { fal } from "@fal-ai/server"
+import { fal } from "@fal-ai/client"
 
 fal.config({ credentials: process.env.FAL_KEY })
 
