@@ -58,7 +58,9 @@ export default function FluxStyleGUI() {
     }
 
     const data = await response.json()
-    return data.images || []
+
+    // ✨ Normalize the output to just URLs
+    return (data.images || []).map(img => img.url || img)
   }
 
   const handleGenerateAll = async () => {
@@ -114,6 +116,7 @@ export default function FluxStyleGUI() {
   return (
     <div className="flex min-h-screen bg-zinc-900 text-white">
       <div className="w-1/2 p-6 border-r border-zinc-800 space-y-4 overflow-y-auto">
+        {/* Input Side */}
         <div className="space-y-2">
           <label className="text-sm font-semibold">Base Prompt (optional)</label>
           <Textarea
@@ -158,6 +161,7 @@ export default function FluxStyleGUI() {
         </Button>
 
         <div className="grid grid-cols-2 gap-4 pt-4">
+          {/* Sliders */}
           <div>
             <label className="text-sm font-semibold">Num Inference Steps</label>
             <input type="range" min={1} max={100} value={numSteps} onChange={(e) => setNumSteps(e.target.value)} className="w-full" />
@@ -181,6 +185,7 @@ export default function FluxStyleGUI() {
         </div>
 
         <div className="space-y-2 pt-4">
+          {/* Image Size Dropdown */}
           <label className="text-sm font-semibold">Image Size</label>
           <select
             className="bg-zinc-800 text-white border-zinc-700 w-full p-2 rounded-md"
@@ -202,10 +207,13 @@ export default function FluxStyleGUI() {
           <Button onClick={handleGenerateAll} disabled={loading} className="bg-purple-600">
             {loading ? <><Loader2 className="animate-spin mr-2" /> Generating...</> : "Generate All"}
           </Button>
-          <Button onClick={downloadZip} disabled={allResults.flat().length === 0} className="bg-blue-500">Download All (Zip)</Button>
+          <Button onClick={downloadZip} disabled={allResults.flat().length === 0} className="bg-blue-500">
+            Download All (Zip)
+          </Button>
         </div>
       </div>
 
+      {/* Result Side */}
       <div className="w-1/2 p-6 overflow-y-auto">
         <Card className="bg-zinc-800">
           <CardContent className="p-4">
@@ -216,6 +224,7 @@ export default function FluxStyleGUI() {
                 </Button>
               ))}
             </div>
+
             {loading ? (
               <div className="text-center">
                 <Loader2 className="animate-spin w-8 h-8 mx-auto" />
@@ -227,7 +236,11 @@ export default function FluxStyleGUI() {
               <div className="grid grid-cols-2 gap-4">
                 {allResults[selectedLoraIndex].map((url, index) => (
                   <div key={index} className="relative">
-                    <img src={url} className="rounded-xl shadow-md" />
+                    <img
+                      src={url}
+                      alt="Generated Image"
+                      className="rounded-xl shadow-md"
+                    />
                     <a
                       href={url}
                       onClick={async (e) => {
