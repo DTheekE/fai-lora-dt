@@ -4,10 +4,7 @@ import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Loader2, Download, Plus, X } from "lucide-react"
-import { fal } from "@fal-ai/client"
 import JSZip from "jszip"
-
-fal.config({ credentials: import.meta.env.VITE_FAL_KEY })
 
 export default function FluxStyleGUI() {
   const [prompt, setPrompt] = useState("")
@@ -16,7 +13,7 @@ export default function FluxStyleGUI() {
   const [guidanceScale, setGuidanceScale] = useState(3.5)
   const [realCFGScale, setRealCFGScale] = useState(3.5)
   const [numImages, setNumImages] = useState(1)
-  const [safetyChecker, setSafetyChecker] = useState(false)
+  const [safetyChecker, setSafetyChecker] = useState(true)
   const [imageSize, setImageSize] = useState("portrait_16_9")
   const [loraPaths, setLoraPaths] = useState([""])
   const [allResults, setAllResults] = useState([])
@@ -41,19 +38,27 @@ export default function FluxStyleGUI() {
       controlnet_unions: [],
       ip_adapters: [],
       loras: loraPath ? [{ path: loraPath }] : [],
-      scale: scale ? Number(scale) : undefined
+      scale: 1,
     }
 
-    const result = await fal.subscribe("fal-ai/flux-lora", {
-      input: payload,
-      logs: true,
-      onQueueUpdate: (update) => {
-        if (update.status === "IN_PROGRESS") {
-          update.logs.map((log) => log.message).forEach(console.log)
-        }
-      }
+    if (import.meta.env.DEV) {
+      console.log("[DEV MODE] Returning mocked images")
+      return ["https://dummyimage.com/512x512/000/fff&text=Mock+Image"]
+    }
+
+    const response = await fetch("/api/flux-generate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
     })
-    return result?.data?.images?.map((img) => img?.url).filter(Boolean) || []
+
+    if (!response.ok) {
+      const errorData = await response.json()
+      throw new Error(errorData.error || "Failed to generate images.")
+    }
+
+    const data = await response.json()
+    return data.images || []
   }
 
   const handleGenerateAll = async () => {
@@ -137,7 +142,7 @@ export default function FluxStyleGUI() {
             />
             <Input
               className="bg-zinc-800 text-white border-zinc-700"
-              placeholder={`Prompt for Lora ${i + 1} (leave blank to use base)`}
+              placeholder={`Prompt for Lora ${i + 1} (optional)`}
               value={prompts[i] || ""}
               onChange={(e) => {
                 const newPrompts = [...prompts]
@@ -176,9 +181,6 @@ export default function FluxStyleGUI() {
         </div>
 
         <div className="space-y-2 pt-4">
-     
-
-
           <label className="text-sm font-semibold">Image Size</label>
           <select
             className="bg-zinc-800 text-white border-zinc-700 w-full p-2 rounded-md"
@@ -194,29 +196,12 @@ export default function FluxStyleGUI() {
             <option value="landscape_16_9">Landscape 16:9</option>
             <option value="custom">Custom</option>
           </select>
-
-          <div className="flex items-center justify-between">
-  <label className="text-sm font-semibold">Enable Safety Checker</label>
-  <button
-    disabled onClick={() => setSafetyChecker(!safetyChecker)}
-    className={`relative inline-flex items-center h-6 rounded-full w-11 transition-colors duration-200 ease-in-out ${
-      safetyChecker ? 'bg-purple-600' : 'bg-zinc-600'
-    }`}
-  >
-    <span
-      className={`inline-block w-4 h-4 transform bg-white rounded-full transition-transform duration-200 ease-in-out ${
-        safetyChecker ? 'translate-x-6' : 'translate-x-1'
-      }`}
-    />
-  </button>
-</div>
         </div>
 
         <div className="flex space-x-2 pt-4">
           <Button onClick={handleGenerateAll} disabled={loading} className="bg-purple-600">
             {loading ? <><Loader2 className="animate-spin mr-2" /> Generating...</> : "Generate All"}
           </Button>
-
           <Button onClick={downloadZip} disabled={allResults.flat().length === 0} className="bg-blue-500">Download All (Zip)</Button>
         </div>
       </div>
@@ -250,7 +235,7 @@ export default function FluxStyleGUI() {
                         const res = await fetch(url);
                         const blob = await res.blob();
                         const blobUrl = URL.createObjectURL(blob);
-                        
+
                         const link = document.createElement("a");
                         link.href = blobUrl;
                         link.download = `image_${selectedLoraIndex + 1}_${index + 1}.jpg`;
