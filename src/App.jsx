@@ -13,7 +13,7 @@ export default function FluxStyleGUI() {
   const [guidanceScale, setGuidanceScale] = useState(3.5)
   const [realCFGScale, setRealCFGScale] = useState(3.5)
   const [numImages, setNumImages] = useState(1)
-  const [safetyChecker, setSafetyChecker] = useState(true)
+  const [safetyChecker, setSafetyChecker] = useState(false)
   const [imageSize, setImageSize] = useState("portrait_16_9")
   const [loraPaths, setLoraPaths] = useState([""])
   const [allResults, setAllResults] = useState([])
