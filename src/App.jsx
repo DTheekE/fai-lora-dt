@@ -14,6 +14,7 @@ export default function FluxStyleGUI() {
   const [numImages, setNumImages] = useState(1)
   const [imageSize, setImageSize] = useState("landscape_4_3")
   const [loraPaths, setLoraPaths] = useState([""])
+  const [loraScales, setLoraScales] = useState([1])
   const [allResults, setAllResults] = useState([])
   const [selectedLoraIndex, setSelectedLoraIndex] = useState(0)
   const [loading, setLoading] = useState(false)
@@ -21,17 +22,21 @@ export default function FluxStyleGUI() {
   const [seed, setSeed] = useState("")
   const [outputFormat, setOutputFormat] = useState("png")
 
-  const generateForLora = async (loraPath, individualPrompt) => {
-    const loras = loraPath?.trim() ? [{ path: loraPath.trim() }] : []
+  const generateForLora = async (loraPath, individualPrompt, loraScale = 1) => {
+    // Build loras array with path and scale
+    const loras = loraPath?.trim() 
+      ? [{ path: loraPath.trim(), scale: Number(loraScale) }] 
+      : []
     
     const payload = {
       prompt: individualPrompt?.trim() || prompt?.trim() || "",
-      num_inference_steps: Number(numSteps),
       guidance_scale: Number(guidanceScale),
+      num_inference_steps: Number(numSteps),
+      image_size: imageSize,
       num_images: Number(numImages),
+      acceleration: "regular",
       enable_safety_checker: false,
       sync_mode: true,
-      image_size: imageSize,
       output_format: outputFormat,
       loras: loras,
     }
@@ -67,7 +72,9 @@ export default function FluxStyleGUI() {
     setLoading(true)
     setError(null)
     try {
-      const promises = loraPaths.map((path, index) => generateForLora(path, prompts[index]))
+      const promises = loraPaths.map((path, index) => 
+        generateForLora(path, prompts[index], loraScales[index] || 1)
+      )
       const results = await Promise.all(promises)
       setAllResults(results)
     } catch (err) {
@@ -99,15 +106,19 @@ export default function FluxStyleGUI() {
   const addLoraInput = () => {
     setLoraPaths([...loraPaths, ""])
     setPrompts([...prompts, ""])
+    setLoraScales([...loraScales, 1])
   }
 
   const removeLoraInput = (index) => {
     const newPaths = [...loraPaths]
     const newPrompts = [...prompts]
+    const newScales = [...loraScales]
     newPaths.splice(index, 1)
     newPrompts.splice(index, 1)
+    newScales.splice(index, 1)
     setLoraPaths(newPaths)
     setPrompts(newPrompts)
+    setLoraScales(newScales)
     if (selectedLoraIndex >= newPaths.length) {
       setSelectedLoraIndex(newPaths.length - 1)
     }
@@ -134,7 +145,7 @@ export default function FluxStyleGUI() {
             <label className="text-sm font-semibold">Lora Path {i + 1}</label>
             <Input
               className="bg-zinc-800 text-white border-zinc-700"
-              placeholder={`Lora path ${i + 1}`}
+              placeholder={`Lora path ${i + 1} (URL or HuggingFace ID)`}
               value={path}
               onChange={(e) => {
                 const newPaths = [...loraPaths]
@@ -142,16 +153,34 @@ export default function FluxStyleGUI() {
                 setLoraPaths(newPaths)
               }}
             />
-            <Input
-              className="bg-zinc-800 text-white border-zinc-700"
-              placeholder={`Prompt for Lora ${i + 1} (optional)`}
-              value={prompts[i] || ""}
-              onChange={(e) => {
-                const newPrompts = [...prompts]
-                newPrompts[i] = e.target.value
-                setPrompts(newPrompts)
-              }}
-            />
+            <div className="flex gap-2">
+              <Input
+                className="bg-zinc-800 text-white border-zinc-700 flex-1"
+                placeholder={`Prompt for Lora ${i + 1} (optional)`}
+                value={prompts[i] || ""}
+                onChange={(e) => {
+                  const newPrompts = [...prompts]
+                  newPrompts[i] = e.target.value
+                  setPrompts(newPrompts)
+                }}
+              />
+              <div className="w-24">
+                <Input
+                  type="number"
+                  step="0.1"
+                  min="0"
+                  max="2"
+                  className="bg-zinc-800 text-white border-zinc-700"
+                  placeholder="Scale"
+                  value={loraScales[i] || 1}
+                  onChange={(e) => {
+                    const newScales = [...loraScales]
+                    newScales[i] = e.target.value
+                    setLoraScales(newScales)
+                  }}
+                />
+              </div>
+            </div>
           </div>
         ))}
 
