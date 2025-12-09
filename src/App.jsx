@@ -19,23 +19,29 @@ export default function FluxStyleGUI() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
   const [seed, setSeed] = useState("")
-  const [acceleration, setAcceleration] = useState("regular")
   const [outputFormat, setOutputFormat] = useState("png")
 
   const generateForLora = async (loraPath, individualPrompt) => {
+    const loras = loraPath?.trim() ? [{ path: loraPath.trim() }] : []
+    
     const payload = {
-      prompt: individualPrompt || prompt,
+      prompt: individualPrompt?.trim() || prompt?.trim() || "",
       num_inference_steps: Number(numSteps),
       guidance_scale: Number(guidanceScale),
       num_images: Number(numImages),
       enable_safety_checker: false,
       sync_mode: true,
       image_size: imageSize,
-      acceleration: acceleration,
       output_format: outputFormat,
-      loras: loraPath ? [{ path: loraPath }] : [],
-      ...(seed && { seed: Number(seed) }),
+      loras: loras,
     }
+    
+    // Only add seed if it's a valid number
+    if (seed && !isNaN(Number(seed))) {
+      payload.seed = Number(seed)
+    }
+    
+    console.log("Sending payload:", JSON.stringify(payload, null, 2))
 
     if (import.meta.env.DEV) {
       console.log("[DEV MODE] Returning mocked images")
@@ -181,7 +187,7 @@ export default function FluxStyleGUI() {
           </div>
         </div>
 
-        <div className="grid grid-cols-3 gap-4 pt-4">
+        <div className="grid grid-cols-2 gap-4 pt-4">
           <div className="space-y-2">
             <label className="text-sm font-semibold">Image Size</label>
             <select
@@ -195,19 +201,6 @@ export default function FluxStyleGUI() {
               <option value="portrait_16_9">Portrait 16:9</option>
               <option value="landscape_4_3">Landscape 4:3</option>
               <option value="landscape_16_9">Landscape 16:9</option>
-            </select>
-          </div>
-
-          <div className="space-y-2">
-            <label className="text-sm font-semibold">Acceleration</label>
-            <select
-              className="bg-zinc-800 text-white border-zinc-700 w-full p-2 rounded-md"
-              value={acceleration}
-              onChange={(e) => setAcceleration(e.target.value)}
-            >
-              <option value="none">None</option>
-              <option value="regular">Regular</option>
-              <option value="high">High</option>
             </select>
           </div>
 
