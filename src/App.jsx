@@ -145,7 +145,7 @@ export default function FluxStyleGUI() {
             <label className="text-sm font-semibold">Lora Path {i + 1}</label>
             <Input
               className="bg-zinc-800 text-white border-zinc-700"
-              placeholder={`Lora path ${i + 1} (URL or HuggingFace ID)`}
+              placeholder={`Lora path ${i + 1} (Lora Path)`}
               value={path}
               onChange={(e) => {
                 const newPaths = [...loraPaths]
