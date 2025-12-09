@@ -10,36 +10,38 @@ export default function FluxStyleGUI() {
   const [prompt, setPrompt] = useState("")
   const [prompts, setPrompts] = useState([""])
   const [numSteps, setNumSteps] = useState(28)
-  const [guidanceScale, setGuidanceScale] = useState(3.5)
-  const [realCFGScale, setRealCFGScale] = useState(3.5)
+  const [guidanceScale, setGuidanceScale] = useState(2.5)
   const [numImages, setNumImages] = useState(1)
-  const [safetyChecker, setSafetyChecker] = useState(false)
-  const [imageSize, setImageSize] = useState("portrait_16_9")
+  const [imageSize, setImageSize] = useState("landscape_4_3")
   const [loraPaths, setLoraPaths] = useState([""])
   const [allResults, setAllResults] = useState([])
   const [selectedLoraIndex, setSelectedLoraIndex] = useState(0)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
+  const [seed, setSeed] = useState("")
+  const [outputFormat, setOutputFormat] = useState("png")
 
   const generateForLora = async (loraPath, individualPrompt) => {
+    const loras = loraPath?.trim() ? [{ path: loraPath.trim() }] : []
+    
     const payload = {
-      prompt: individualPrompt || prompt,
+      prompt: individualPrompt?.trim() || prompt?.trim() || "",
       num_inference_steps: Number(numSteps),
       guidance_scale: Number(guidanceScale),
-      real_cfg_scale: Number(realCFGScale),
       num_images: Number(numImages),
-      enable_safety_checker: safetyChecker,
-      reference_strength: 0.65,
-      reference_end: 1,
-      base_shift: 0.5,
-      max_shift: 1.15,
+      enable_safety_checker: false,
+      sync_mode: true,
       image_size: imageSize,
-      controlnets: [],
-      controlnet_unions: [],
-      ip_adapters: [],
-      loras: loraPath ? [{ path: loraPath }] : [],
-      scale: 1,
+      output_format: outputFormat,
+      loras: loras,
     }
+    
+    // Only add seed if it's a valid number
+    if (seed && !isNaN(Number(seed))) {
+      payload.seed = Number(seed)
+    }
+    
+    console.log("Sending payload:", JSON.stringify(payload, null, 2))
 
     if (import.meta.env.DEV) {
       console.log("[DEV MODE] Returning mocked images")
@@ -58,8 +60,6 @@ export default function FluxStyleGUI() {
     }
 
     const data = await response.json()
-
-    // ✨ Normalize the output to just URLs
     return (data.images || []).map(img => img.url || img)
   }
 
@@ -86,7 +86,7 @@ export default function FluxStyleGUI() {
       selectedImages.map(async (url, index) => {
         const res = await fetch(url)
         const blob = await res.blob()
-        folder.file(`image_${index + 1}.jpg`, blob)
+        folder.file(`image_${index + 1}.${outputFormat}`, blob)
       })
     )
     const zipBlob = await zip.generateAsync({ type: "blob" })
@@ -116,7 +116,6 @@ export default function FluxStyleGUI() {
   return (
     <div className="flex min-h-screen bg-zinc-900 text-white">
       <div className="w-1/2 p-6 border-r border-zinc-800 space-y-4 overflow-y-auto">
-        {/* Input Side */}
         <div className="space-y-2">
           <label className="text-sm font-semibold">Base Prompt (optional)</label>
           <Textarea
@@ -161,46 +160,62 @@ export default function FluxStyleGUI() {
         </Button>
 
         <div className="grid grid-cols-2 gap-4 pt-4">
-          {/* Sliders */}
           <div>
             <label className="text-sm font-semibold">Num Inference Steps</label>
             <input type="range" min={1} max={100} value={numSteps} onChange={(e) => setNumSteps(e.target.value)} className="w-full" />
             <span className="text-xs">{numSteps}</span>
           </div>
           <div>
-            <label className="text-sm font-semibold">Guidance Scale (CFG)</label>
+            <label className="text-sm font-semibold">Guidance Scale</label>
             <input type="range" min={0} max={20} step={0.1} value={guidanceScale} onChange={(e) => setGuidanceScale(e.target.value)} className="w-full" />
             <span className="text-xs">{guidanceScale}</span>
-          </div>
-          <div>
-            <label className="text-sm font-semibold">Real CFG Scale</label>
-            <input type="range" min={0} max={20} step={0.1} value={realCFGScale} onChange={(e) => setRealCFGScale(e.target.value)} className="w-full" />
-            <span className="text-xs">{realCFGScale}</span>
           </div>
           <div>
             <label className="text-sm font-semibold">Num Images</label>
             <input type="range" min={1} max={4} value={numImages} onChange={(e) => setNumImages(e.target.value)} className="w-full" />
             <span className="text-xs">{numImages}</span>
           </div>
+          <div>
+            <label className="text-sm font-semibold">Seed (optional)</label>
+            <Input
+              type="number"
+              className="bg-zinc-800 text-white border-zinc-700"
+              placeholder="Random"
+              value={seed}
+              onChange={(e) => setSeed(e.target.value)}
+            />
+          </div>
         </div>
 
-        <div className="space-y-2 pt-4">
-          {/* Image Size Dropdown */}
-          <label className="text-sm font-semibold">Image Size</label>
-          <select
-            className="bg-zinc-800 text-white border-zinc-700 w-full p-2 rounded-md"
-            value={imageSize}
-            onChange={(e) => setImageSize(e.target.value)}
-          >
-            <option value="default">Default</option>
-            <option value="square">Square</option>
-            <option value="square_hd">Square HD</option>
-            <option value="portrait_3_4">Portrait 3:4</option>
-            <option value="portrait_16_9">Portrait 9:16</option>
-            <option value="landscape_4_3">Landscape 4:3</option>
-            <option value="landscape_16_9">Landscape 16:9</option>
-            <option value="custom">Custom</option>
-          </select>
+        <div className="grid grid-cols-2 gap-4 pt-4">
+          <div className="space-y-2">
+            <label className="text-sm font-semibold">Image Size</label>
+            <select
+              className="bg-zinc-800 text-white border-zinc-700 w-full p-2 rounded-md"
+              value={imageSize}
+              onChange={(e) => setImageSize(e.target.value)}
+            >
+              <option value="square">Square</option>
+              <option value="square_hd">Square HD</option>
+              <option value="portrait_4_3">Portrait 4:3</option>
+              <option value="portrait_16_9">Portrait 16:9</option>
+              <option value="landscape_4_3">Landscape 4:3</option>
+              <option value="landscape_16_9">Landscape 16:9</option>
+            </select>
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-sm font-semibold">Output Format</label>
+            <select
+              className="bg-zinc-800 text-white border-zinc-700 w-full p-2 rounded-md"
+              value={outputFormat}
+              onChange={(e) => setOutputFormat(e.target.value)}
+            >
+              <option value="png">PNG</option>
+              <option value="jpeg">JPEG</option>
+              <option value="webp">WebP</option>
+            </select>
+          </div>
         </div>
 
         <div className="flex space-x-2 pt-4">
@@ -208,12 +223,11 @@ export default function FluxStyleGUI() {
             {loading ? <><Loader2 className="animate-spin mr-2" /> Generating...</> : "Generate All"}
           </Button>
           <Button onClick={downloadZip} disabled={allResults.flat().length === 0} className="bg-blue-500">
-            Download All (Zip)
+            <Download className="w-4 h-4 mr-2" /> Download All (Zip)
           </Button>
         </div>
       </div>
 
-      {/* Result Side */}
       <div className="w-1/2 p-6 overflow-y-auto">
         <Card className="bg-zinc-800">
           <CardContent className="p-4">
@@ -251,7 +265,7 @@ export default function FluxStyleGUI() {
 
                         const link = document.createElement("a");
                         link.href = blobUrl;
-                        link.download = `image_${selectedLoraIndex + 1}_${index + 1}.jpg`;
+                        link.download = `image_${selectedLoraIndex + 1}_${index + 1}.${outputFormat}`;
                         document.body.appendChild(link);
                         link.click();
                         document.body.removeChild(link);
