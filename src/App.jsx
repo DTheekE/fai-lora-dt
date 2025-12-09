@@ -35,8 +35,8 @@ export default function FluxStyleGUI() {
       image_size: imageSize,
       num_images: Number(numImages),
       acceleration: "regular",
-      enable_safety_checker: false,
-      sync_mode: true,
+      enable_safety_checker: true,
+      sync_mode: false,
       output_format: outputFormat,
       loras: loras,
     }
